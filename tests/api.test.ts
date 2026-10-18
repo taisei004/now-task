@@ -127,7 +127,7 @@ describe("認証・権限", () => {
     await request("/api/sync", { tasks: [t] });
     expect(
       await (await request("/api/tasks", undefined, "bob")).json(),
-    ).toEqual({ tasks: [] });
+    ).toEqual({ tasks: [], complete: true });
   });
   it("同じidでも他ユーザーのタスクを変更しない", async () => {
     const t = newTask("alice");
@@ -158,6 +158,23 @@ describe("認証・権限", () => {
   });
 });
 describe("同期・Workers AI", () => {
+  it("取得上限による部分応答を完全な一覧と区別する", async () => {
+    const insert = db.prepare(
+      "INSERT INTO tasks(user_id,id,data,updated_at) VALUES(?,?,?,?)",
+    );
+    db.exec("BEGIN");
+    for (let i = 0; i < 5001; i++) {
+      const task = newTask(`タスク${i}`);
+      insert.run("alice", task.id, JSON.stringify(task), i);
+    }
+    db.exec("COMMIT");
+    const response = (await (await request("/api/tasks")).json()) as {
+      tasks: unknown[];
+      complete: boolean;
+    };
+    expect(response.tasks).toHaveLength(5000);
+    expect(response.complete).toBe(false);
+  });
   it("保存とステータス更新が永続化される", async () => {
     const t = newTask("仕事");
     await request("/api/sync", { tasks: [t] });

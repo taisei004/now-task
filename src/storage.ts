@@ -32,13 +32,25 @@ export async function markClean(scope: string, sent: Task[]) {
   }
   await tx.done;
 }
-export async function mergeRemote(scope: string, tasks: Task[]) {
+export async function mergeRemote(
+  scope: string,
+  tasks: Task[],
+  complete = false,
+) {
   const database = await db;
   const tx = database.transaction("tasks", "readwrite");
   for (const task of tasks) {
     const key = `${scope}:${task.id}`,
       row = await tx.store.get(key);
     if (!row?.dirty) await tx.store.put({ key, scope, task, dirty: false });
+  }
+  if (complete) {
+    const remoteIds = new Set(tasks.map((task) => task.id));
+    for (const row of await tx.store.getAll()) {
+      if (row.scope === scope && !row.dirty && !remoteIds.has(row.task.id)) {
+        await tx.store.delete(row.key);
+      }
+    }
   }
   await tx.done;
 }

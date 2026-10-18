@@ -574,7 +574,11 @@ export default function App() {
               </h1>
               <span className="small-label">
                 {focus
-                  ? "集中中"
+                  ? remaining === 0
+                    ? "10分経過"
+                    : focus.endsAt
+                      ? "集中中"
+                      : "一時停止"
                   : aiBusy
                     ? "優先順位を確認中"
                     : recommendation?.source === "ai"

@@ -172,11 +172,14 @@ app.post("/api/logout", async (c) => {
 });
 app.get("/api/tasks", async (c) => {
   const rows = await c.env.DB.prepare(
-    "SELECT data FROM tasks WHERE user_id=? ORDER BY updated_at DESC LIMIT 5000",
+    "SELECT data FROM tasks WHERE user_id=? ORDER BY updated_at DESC LIMIT 5001",
   )
     .bind(c.get("user").id)
     .all<{ data: string }>();
-  return c.json({ tasks: rows.results.map((r) => JSON.parse(r.data) as Task) });
+  return c.json({
+    tasks: rows.results.slice(0, 5000).map((r) => JSON.parse(r.data) as Task),
+    complete: rows.results.length <= 5000,
+  });
 });
 app.post("/api/sync", async (c) => {
   const input = z

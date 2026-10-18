@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Task } from "../shared/tasks";
+import { nextSyncBatch } from "../shared/sync";
 import {
   api,
   dirtyTasks,
@@ -37,14 +38,16 @@ export function useTasks() {
         needsSync.current = false;
         let dirty = await dirtyTasks(current);
         while (dirty.length) {
-          const batch = dirty.slice(0, 50);
+          const batch = nextSyncBatch(dirty);
           await api("/api/sync", { tasks: batch });
           await markClean(current, batch);
           dirty = await dirtyTasks(current);
         }
       } while (needsSync.current);
-      const data = await api<{ tasks: Task[] }>("/api/tasks");
-      await mergeRemote(current, data.tasks);
+      const data = await api<{ tasks: Task[]; complete: boolean }>(
+        "/api/tasks",
+      );
+      await mergeRemote(current, data.tasks, data.complete);
       if (alive.current && scopeRef.current === current) {
         setTasks(await readTasks(current));
         setSyncState("saved");
