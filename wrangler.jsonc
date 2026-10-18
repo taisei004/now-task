@@ -1,0 +1,22 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "now-task",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-10-18",
+  "assets": {
+    "directory": "./dist/client",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*", "/auth/*"],
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "now-task",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations",
+    },
+  ],
+  "ai": { "binding": "AI", "remote": true },
+  "vars": { "AI_MODEL": "@cf/meta/llama-3.3-70b-instruct-fp8-fast" },
+  "observability": { "enabled": true },
+}

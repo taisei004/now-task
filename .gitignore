@@ -1,0 +1,10 @@
+node_modules/
+.pnpm-store/
+dist/
+.wrangler/
+.dev.vars
+.env*
+!.env.example
+*.tsbuildinfo
+test-results/
+.DS_Store

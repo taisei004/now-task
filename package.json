@@ -1,0 +1,39 @@
+{
+  "name": "now-task",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview --host 127.0.0.1",
+    "test": "vitest run",
+    "db:local": "wrangler d1 migrations apply now-task --local",
+    "db:remote": "wrangler d1 migrations apply now-task --remote",
+    "deploy": "pnpm build && wrangler deploy"
+  },
+  "dependencies": {
+    "hono": "^4.10.0",
+    "idb": "^8.0.3",
+    "jose": "^6.1.0",
+    "lucide-react": "^0.468.0",
+    "motion": "^12.23.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "zod": "^4.1.0"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.13.0",
+    "@cloudflare/workers-types": "^5.20261018.1",
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "prettier": "3.6.2",
+    "typescript": "^5.9.0",
+    "vite": "^7.1.0",
+    "vitest": "^3.2.0",
+    "wrangler": "^4.43.0"
+  },
+  "packageManager": "pnpm@11.25.0"
+}
