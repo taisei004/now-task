@@ -12,7 +12,7 @@
     {
       "binding": "DB",
       "database_name": "now-task",
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "f706504d-8085-4441-8d79-d15c6791be8b",
       "migrations_dir": "migrations",
     },
   ],

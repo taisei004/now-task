@@ -966,6 +966,11 @@ export default function App() {
               <button className="wide-secondary" onClick={() => void sync()}>
                 今すぐ同期
               </button>
+              {syncState === "offline" && (
+                <a className="google-button" href="/auth/google">
+                  Googleで再ログイン
+                </a>
+              )}
               <button
                 className="logout-button"
                 onClick={() => void logout().catch((e) => flash(e.message))}

@@ -2,6 +2,10 @@
 
 モバイルファーストの個人用タスクアプリ。画面上部ですぐメモを追加し、理由付きの「今やること」を1件ずつ進めます。
 
+公開URL：[now-task.now-task.workers.dev](https://now-task.now-task.workers.dev/)
+
+ソース：[taisei004/now-task](https://github.com/taisei004/now-task)
+
 ## 操作
 
 - 開くと入力欄にフォーカス。改行を含むラフな文章を登録できます。Ctrl / ⌘ + Enterでも追加。
@@ -47,7 +51,7 @@
 6. 書き込みAPIはOriginとJSON形式を確認し、128 KiBを上限にします。クライアントにGoogleの秘密情報は渡しません。
 7. 推薦はD1内の未完了タスクだけを使います。最大40件を優先順で選んでWorkers AIに渡し、存在しないIDや不正な出力を拒否。当日・超過期限のタスクをAIが後回しにする場合もルールに戻します。
 8. AIに接続できない場合は、期限・重要度・登録順による推薦と、その理由を表示します。AIが実行されたときだけWorkers AIと表示します。ローカル推薦をAIの実行結果とは表示しません。
-9. AI結果は同じ入力に対して1時間キャッシュし、利用はユーザーと日付単位で制限します。初期値は100回です。
+9. AI結果は同じ入力に対して1時間キャッシュし、利用はユーザーとサーバーのUTC日付単位で制限します。初期値は100回です。モデルへ送るタスク本文は各250文字までに絞り、長いメモで入力上限を超えにくくします。
 
 ## ローカル開発
 
@@ -91,6 +95,14 @@ pnpm build
 4. 承認済みリダイレクトURIに **本番URL + `/auth/google/callback`** を正確に登録します。必要ならローカルのURIも追加します。
 5. Client IDとClient Secretを取得します。SecretはGitHubやチャットに貼りません。
 6. PowerShellで `./scripts/configure-google.ps1 -AppOrigin https://実際の公開先.workers.dev` を実行し、IDとSecretを入力します。Secretは非表示入力し、標準入力でCloudflareへ登録します。リポジトリには保存しません。
+
+画面で設定する場合は、CloudflareのWorkers & Pagesから `now-task` → Settings → Variables and Secrets → Addを開きます。種類をSecretにして、下記の3項目を登録してDeployします。
+
+| 名前                   | 値                                                               |
+| ---------------------- | ---------------------------------------------------------------- |
+| `GOOGLE_CLIENT_ID`     | Googleで発行されたクライアントID                                 |
+| `GOOGLE_CLIENT_SECRET` | Googleで発行されたクライアントシークレット                       |
+| `APP_ORIGIN`           | `https://now-task.now-task.workers.dev`（末尾に `/` を付けない） |
 
 登録するCloudflareの秘密情報は `GOOGLE_CLIENT_ID`、`GOOGLE_CLIENT_SECRET`、`APP_ORIGIN` の3つです。ID自体は公開識別子ですが、設定の取り違えを避けるため一緒に管理します。
 

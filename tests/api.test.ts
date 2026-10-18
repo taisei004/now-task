@@ -241,4 +241,33 @@ describe("同期・Workers AI", () => {
     expect((await request("/api/next", { today: "2030-01-01" })).status).toBe(
       400,
     ));
+  it("Workers AIの構造化JSON応答も受け取る", async () => {
+    const t = newTask("構成をまとめる");
+    await request("/api/sync", { tasks: [t] });
+    ai.mockResolvedValue({
+      response: {
+        taskId: t.id,
+        reason: "先に登録したタスクです。",
+        firstStep: "10分取り組む",
+      },
+    });
+    const r = (await (
+      await request("/api/next", { today: dateKey() })
+    ).json()) as { recommendation: { source: string; taskId: string } };
+    expect(r.recommendation.source).toBe("ai");
+    expect(r.recommendation.taskId).toBe(t.id);
+  });
+  it("AI利用上限でモデルを呼ばない", async () => {
+    await request("/api/sync", { tasks: [newTask("仕事")] });
+    db.prepare("INSERT INTO ai_usage VALUES(?,?,100)").run(
+      "alice",
+      new Date().toISOString().slice(0, 10),
+    );
+    const r = (await (
+      await request("/api/next", { today: dateKey() })
+    ).json()) as { recommendation: { source: string; warning: string } };
+    expect(r.recommendation.source).toBe("rules");
+    expect(r.recommendation.warning).toContain("利用上限");
+    expect(ai).not.toHaveBeenCalled();
+  });
 });

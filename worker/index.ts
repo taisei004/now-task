@@ -48,7 +48,11 @@ app.use("/api/*", async (c, next) => {
     if (Number(c.req.header("Content-Length") ?? 0) > 131072)
       return c.json({ error: "データが大きすぎます。" }, 413);
   }
-  if (c.req.path === "/api/session" || c.req.path === "/api/health")
+  if (
+    c.req.path === "/api/session" ||
+    c.req.path === "/api/health" ||
+    c.req.path === "/api/logout"
+  )
     return next();
   const user = await currentUser(c.req.raw, c.env);
   if (!user) return c.json({ error: "Googleログインが必要です。" }, 401);
@@ -227,7 +231,7 @@ app.post("/api/next", async (c) => {
   const usage = await c.env.DB.prepare(
     "INSERT INTO ai_usage(user_id,day,count) VALUES(?,?,1) ON CONFLICT(user_id,day) DO UPDATE SET count=count+1 WHERE count<100 RETURNING count",
   )
-    .bind(userId, date.data.today)
+    .bind(userId, new Date().toISOString().slice(0, 10))
     .first<{ count: number }>();
   if (!usage)
     return c.json({
@@ -236,6 +240,7 @@ app.post("/api/next", async (c) => {
         warning: "本日のAI利用上限のため、期限と重要度から選びました。",
       },
     });
+  let aiStage = "provider";
   try {
     const output = (await c.env.AI.run(
       (c.env.AI_MODEL ??
@@ -249,31 +254,57 @@ app.post("/api/next", async (c) => {
           },
           {
             role: "user",
-            content: JSON.stringify({ today: date.data.today, tasks }),
+            content: JSON.stringify({
+              today: date.data.today,
+              tasks: tasks.map((t) => ({
+                id: t.id,
+                text: t.text.slice(0, 250),
+                due: t.due,
+                importance: t.importance,
+                createdAt: t.createdAt,
+                minutes: t.minutes,
+              })),
+            }),
           },
         ],
         max_tokens: 400,
         temperature: 0.2,
+        response_format: { type: "json_object" },
       },
-    )) as { response?: string };
-    const clean =
-      output.response?.replace(/^```(?:json)?\s*/, "").replace(/\s*```$/, "") ??
-      "";
-    const parsed = AiResult.parse(JSON.parse(clean));
+    )) as { response?: unknown };
+    aiStage = "format";
+    const value =
+      typeof output.response === "string"
+        ? JSON.parse(
+            output.response
+              .replace(/^```(?:json)?\s*/, "")
+              .replace(/\s*```$/, ""),
+          )
+        : output.response;
+    const parsed = AiResult.parse(value);
+    aiStage = "selection";
     if (!tasks.some((t) => t.id === parsed.taskId)) throw Error("Unknown task");
     // A model may not displace overdue / due-today work with a later task.
     const urgent = tasks.filter((t) => t.due && t.due <= date.data.today);
     if (urgent.length && !urgent.some((t) => t.id === parsed.taskId))
       throw Error("Deadline guard");
     const recommendation: Recommendation = { ...parsed, source: "ai" };
+    aiStage = "cache";
     await c.env.DB.prepare(
       "INSERT INTO ai_cache(user_id,fingerprint,result,updated_at) VALUES(?,?,?,?) ON CONFLICT(user_id) DO UPDATE SET fingerprint=excluded.fingerprint,result=excluded.result,updated_at=excluded.updated_at",
     )
       .bind(userId, fingerprint, JSON.stringify(recommendation), Date.now())
       .run();
     return c.json({ recommendation });
-  } catch {
+  } catch (error) {
     return c.json({
+      diagnostic: {
+        stage: aiStage,
+        type: error instanceof Error ? error.name : "unknown",
+        ...(aiStage === "provider" && error instanceof Error
+          ? { message: error.message.slice(0, 200) }
+          : {}),
+      },
       recommendation: {
         ...fallback,
         warning: "AIに接続できないため、期限と重要度から選びました。",
