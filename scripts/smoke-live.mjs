@@ -84,6 +84,8 @@ try {
   });
   const urgent = make(urgentId, "今日が期限の見積書を送る", today),
     later = make(laterId, "書類を整理する", null);
+  urgent.importance = "high";
+  urgent.tags = [{ name: "確認用", color: "rose" }];
   assert.equal(
     (await call("/api/sync", { body: { tasks: [urgent, later] } })).status,
     200,
@@ -91,7 +93,61 @@ try {
   check("task writes persisted to D1");
   const stored = await (await call("/api/tasks")).json();
   assert.equal(stored.tasks.length, 2);
+  assert.deepEqual(
+    stored.tasks.find((t) => t.id === urgentId).tags,
+    urgent.tags,
+  );
+  assert.equal(stored.tasks.find((t) => t.id === urgentId).importance, "high");
   check("tasks read back from D1");
+  const focus = {
+    taskId: urgentId,
+    remaining: 600,
+    endsAt: Date.now() + 600000,
+  };
+  assert.equal(
+    (await call("/api/focus", { body: { focus, version: 0 } })).status,
+    200,
+  );
+  assert.equal(
+    (await (await call("/api/focus")).json()).focus.taskId,
+    urgentId,
+  );
+  assert.equal(
+    (await (await call("/api/focus", { userToken: bobToken })).json()).focus,
+    null,
+  );
+  check("shared timer persisted and isolated");
+  assert.equal(
+    (await call("/api/focus", { body: { focus: null, version: 0 } })).status,
+    409,
+  );
+  assert.equal(
+    (
+      await call("/api/focus", {
+        body: { focus: { ...focus, remaining: 510, endsAt: null }, version: 1 },
+      })
+    ).status,
+    200,
+  );
+  assert.equal((await (await call("/api/focus")).json()).focus.remaining, 510);
+  check("timer pause and revision conflict enforced");
+  assert.equal((await (await call("/api/discord")).json()).configured, true);
+  const link = await (await call("/api/discord/link", { body: {} })).json();
+  assert.match(link.code, /^[a-f0-9]{16}$/);
+  assert.ok(link.expiresAt > Date.now());
+  assert.equal((await call("/api/discord/unlink", { body: {} })).status, 200);
+  check("Discord setup and one-time link code available");
+  assert.equal(
+    (
+      await fetch(`${origin}/discord/interactions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: '{"type":1}',
+      })
+    ).status,
+    401,
+  );
+  check("unsigned Discord interactions rejected");
   const other = await (
     await call("/api/tasks", { userToken: bobToken })
   ).json();

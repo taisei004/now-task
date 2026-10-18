@@ -1,0 +1,319 @@
+.capture-options {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  margin: 8px 0 14px;
+  position: relative;
+  z-index: 3;
+  flex-wrap: wrap;
+}
+.capture-options label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 10px;
+  color: var(--muted, #667085);
+  min-width: 0;
+}
+.capture-options input,
+.capture-options select {
+  box-sizing: border-box;
+  min-height: 36px;
+  border: 1px solid #e1e6ef;
+  border-radius: 10px;
+  background: #ffffffb3;
+  padding: 6px 9px;
+  color: #344054;
+  font: inherit;
+  font-size: 12px;
+  max-width: 150px;
+}
+.capture-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.capture {
+  position: relative;
+  z-index: 4;
+}
+.tag-picker {
+  position: relative;
+  font-size: 12px;
+  color: #53627b;
+}
+.capture-options .tag-picker {
+  position: static;
+}
+.edit-tags .tag-popover {
+  left: 0;
+  right: auto;
+  max-width: calc(100vw - 110px);
+}
+.discord-setup {
+  margin: 12px 0;
+  font-size: 12px;
+  color: #56627a;
+}
+.discord-setup summary {
+  cursor: pointer;
+}
+.discord-setup label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.discord-setup input {
+  width: 100%;
+  min-height: 40px;
+  border: 1px solid #dbe2ef;
+  border-radius: 10px;
+  padding: 8px;
+  font: inherit;
+  background: #ffffffb3;
+}
+.tag-picker summary {
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid #e1e6ef;
+  border-radius: 10px;
+  background: #ffffffb3;
+}
+.tag-picker summary::-webkit-details-marker {
+  display: none;
+}
+.tag-popover {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  width: 260px;
+  max-width: calc(100vw - 64px);
+  padding: 14px;
+  border-radius: 16px;
+  z-index: 30;
+  background: #fcfdfff5;
+  box-shadow: 0 12px 40px #182e5826;
+}
+.tag-picker-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.tag-options,
+.color-options,
+.selected-tags,
+.task-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.tag-options > button,
+.selected-tags > button {
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 3px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  cursor: pointer;
+}
+.tag-options > button[aria-pressed="true"] {
+  border-color: #627ee2;
+  background: #eff3ff;
+}
+.tag-create {
+  display: flex;
+  gap: 6px;
+  margin: 12px 0 8px;
+}
+.tag-create input {
+  min-width: 0;
+  flex: 1;
+  max-width: none !important;
+  font-size: 12px;
+  padding: 8px;
+  border: 1px solid #dce2ef;
+  border-radius: 8px;
+  background: white;
+}
+.tag-create > button {
+  border: 0;
+  background: #edf2ff;
+  border-radius: 8px;
+  color: #526bd2;
+  display: grid;
+  place-items: center;
+  width: 32px;
+}
+.tag-pill {
+  --tag-color: #5273d9;
+  --tag-bg: #edf2ff;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--tag-bg);
+  color: var(--tag-color);
+  border-radius: 6px;
+  padding: 3px 7px;
+  font-size: 10px;
+  line-height: 1.4;
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tag-blue {
+  --tag-color: #5273d9;
+  --tag-bg: #edf2ff;
+}
+.tag-green {
+  --tag-color: #21765e;
+  --tag-bg: #e5f4ee;
+}
+.tag-purple {
+  --tag-color: #8056bd;
+  --tag-bg: #f1eafb;
+}
+.tag-amber {
+  --tag-color: #99621d;
+  --tag-bg: #fbefdb;
+}
+.tag-rose {
+  --tag-color: #ba527b;
+  --tag-bg: #faeaf0;
+}
+.tag-slate {
+  --tag-color: #5d6c80;
+  --tag-bg: #eaf0f5;
+}
+.tag-pill i,
+.tag-swatch i {
+  display: block;
+  width: 5px;
+  height: 5px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--tag-color);
+}
+.tag-swatch {
+  display: grid;
+  place-items: center;
+  border: 2px solid transparent;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  background: var(--tag-bg);
+  cursor: pointer;
+}
+.tag-swatch i {
+  width: 13px;
+  height: 13px;
+}
+.tag-swatch[aria-pressed="true"] {
+  border-color: var(--tag-color);
+}
+.selected-tags {
+  margin: 0 0 10px;
+}
+.task-tags {
+  margin: 6px 0;
+}
+.tag-filters {
+  display: flex;
+  overflow-x: auto;
+  gap: 6px;
+  margin: 0 0 12px;
+  max-width: 100%;
+  padding: 2px;
+}
+.tag-filters > button {
+  flex-shrink: 0;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 5px 7px;
+  background: transparent;
+  font-size: 11px;
+  color: #667085;
+  cursor: pointer;
+}
+.tag-filters > button[aria-pressed="true"] {
+  border-color: #c5d0f1;
+  background: #ffffffb3;
+  color: #3e60c8;
+}
+.voice-status {
+  font-size: 12px;
+  color: #576fc3;
+  padding: 8px 10px;
+  background: #eef2ff;
+  border-radius: 8px;
+  overflow-wrap: anywhere;
+}
+.mic-button.listening {
+  background: #fbe9f0;
+  color: #c6527a;
+  animation: mic-pulse 1.2s ease-in-out infinite;
+}
+.edit-tags {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: #667085;
+}
+.edit-tags .selected-tags {
+  width: 100%;
+  margin: 0;
+}
+.discord-settings {
+  border-top: 1px solid #e2e7f1;
+  margin-top: 16px;
+  padding-top: 16px;
+}
+.discord-settings p {
+  font-size: 12px;
+  color: #667085;
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+.discord-code {
+  display: block;
+  user-select: all;
+  font-size: 19px;
+  letter-spacing: 2px;
+  padding: 12px;
+  background: #f0f3fc;
+  border-radius: 10px;
+  text-align: center;
+}
+@keyframes mic-pulse {
+  50% {
+    box-shadow: 0 0 0 6px #c6527a12;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mic-button.listening {
+    animation: none;
+  }
+}
+@media (max-width: 400px) {
+  .capture-options {
+    gap: 7px;
+  }
+  .capture-options input {
+    max-width: 137px;
+  }
+  .capture-options select {
+    max-width: 88px;
+  }
+  .tag-picker summary {
+    padding: 10px 8px;
+  }
+}

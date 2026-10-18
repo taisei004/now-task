@@ -6,7 +6,7 @@
   "assets": {
     "directory": "./dist/client",
     "not_found_handling": "single-page-application",
-    "run_worker_first": ["/api/*", "/auth/*"],
+    "run_worker_first": ["/api/*", "/auth/*", "/discord/*"],
   },
   "d1_databases": [
     {
@@ -17,6 +17,12 @@
     },
   ],
   "ai": { "binding": "AI", "remote": true },
-  "vars": { "AI_MODEL": "@cf/meta/llama-3.3-70b-instruct-fp8-fast" },
+  "vars": {
+    "AI_MODEL": "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+    "DISCORD_APPLICATION_ID": "1561466054452969512",
+    "DISCORD_PUBLIC_KEY": "e740e90d2249e3183f1c812f39ba00e895ce0d91bd4633ba1497d57b00521d72",
+    "DISCORD_GUILD_ID": "1433011113599045704",
+    "DISCORD_CHANNEL_ID": "1480597044425916469",
+  },
   "observability": { "enabled": true },
 }

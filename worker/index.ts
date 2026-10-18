@@ -1,4 +1,7 @@
 import { TaskSchema } from "./schema";
+import discord from "./discord";
+import { discordCommand } from "../shared/discord-command";
+import { FocusSchema, readFocus, writeFocus } from "./focus";
 import { Hono } from "hono";
 import { bodyLimit } from "hono/body-limit";
 import { z } from "zod";
@@ -60,6 +63,135 @@ app.use("/api/*", async (c, next) => {
   await next();
 });
 app.get("/api/health", (c) => c.json({ ok: true }));
+app.route("/discord", discord);
+app.get("/api/focus", async (c) =>
+  c.json(await readFocus(c.env, c.get("user").id)),
+);
+app.post("/api/focus", async (c) => {
+  const value = z
+    .object({ focus: FocusSchema, version: z.number().int().min(0) })
+    .safeParse(await c.req.json());
+  if (!value.success)
+    return c.json({ error: "タイマーの設定が不正です。" }, 400);
+  const { focus, version } = value.data,
+    userId = c.get("user").id;
+  if (focus) {
+    if (
+      focus.endsAt !== null &&
+      (focus.endsAt > Date.now() + 601000 || focus.endsAt < Date.now() - 600000)
+    )
+      return c.json({ error: "タイマーの時刻を確認してください。" }, 400);
+    const row = await c.env.DB.prepare(
+      "SELECT data FROM tasks WHERE user_id=? AND id=?",
+    )
+      .bind(userId, focus.taskId)
+      .first<{ data: string }>();
+    if (!row || JSON.parse(row.data).status !== "todo")
+      return c.json({ error: "同期済みの未完了タスクを選んでください。" }, 400);
+  }
+  const saved = await writeFocus(c.env, userId, focus, version);
+  return saved
+    ? c.json(saved)
+    : c.json(
+        {
+          error: "別の画面でタイマーが更新されました。",
+          ...(await readFocus(c.env, userId)),
+        },
+        409,
+      );
+});
+app.get("/api/discord", async (c) => {
+  const linked = await c.env.DB.prepare(
+    "SELECT discord_user_id FROM discord_links WHERE user_id=?",
+  )
+    .bind(c.get("user").id)
+    .first();
+  return c.json({
+    configured: !!(
+      c.env.DISCORD_PUBLIC_KEY &&
+      c.env.DISCORD_APPLICATION_ID &&
+      c.env.DISCORD_GUILD_ID &&
+      c.env.DISCORD_CHANNEL_ID
+    ),
+    linked: !!linked,
+  });
+});
+app.post("/api/discord/register", async (c) => {
+  const input = z
+    .object({
+      token: z
+        .string()
+        .trim()
+        .regex(/^[A-Za-z0-9._-]{20,200}$/),
+    })
+    .safeParse(await c.req.json());
+  if (!input.success)
+    return c.json({ error: "Bot Tokenを確認してください。" }, 400);
+  if (!c.env.DISCORD_APPLICATION_ID || !c.env.DISCORD_GUILD_ID)
+    return c.json({ error: "Discordの接続設定が必要です。" }, 503);
+  if (
+    !/^\d{5,30}$/.test(c.env.DISCORD_APPLICATION_ID) ||
+    !/^\d{5,30}$/.test(c.env.DISCORD_GUILD_ID)
+  )
+    return c.json({ error: "DiscordのIDが不正です。" }, 400);
+  // POST upserts only our command; other application commands are preserved.
+  let response: Response;
+  try {
+    response = await fetch(
+      `https://discord.com/api/v10/applications/${c.env.DISCORD_APPLICATION_ID}/guilds/${c.env.DISCORD_GUILD_ID}/commands`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bot ${input.data.token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(discordCommand),
+        signal: AbortSignal.timeout(12000),
+      },
+    );
+  } catch {
+    return c.json({ error: "Discordに接続できませんでした。" }, 502);
+  }
+  if (!response.ok)
+    return c.json(
+      {
+        error: `Discordに登録できませんでした（${response.status}）。アプリのサーバーへの追加とBot Tokenを確認してください。`,
+      },
+      502,
+    );
+  return c.json({ ok: true });
+});
+app.post("/api/discord/link", async (c) => {
+  if (
+    !c.env.DISCORD_PUBLIC_KEY ||
+    !c.env.DISCORD_GUILD_ID ||
+    !c.env.DISCORD_CHANNEL_ID ||
+    !c.env.DISCORD_APPLICATION_ID
+  )
+    return c.json({ error: "Discordアプリの接続設定が必要です。" }, 503);
+  const code = random().slice(0, 16),
+    expiresAt = Date.now() + 600000;
+  await c.env.DB.batch([
+    c.env.DB.prepare(
+      "DELETE FROM discord_link_codes WHERE user_id=? OR expires_at<?",
+    ).bind(c.get("user").id, Date.now()),
+    c.env.DB.prepare(
+      "INSERT INTO discord_link_codes(hash,user_id,expires_at) VALUES(?,?,?)",
+    ).bind(await hash(code), c.get("user").id, expiresAt),
+  ]);
+  return c.json({ code, expiresAt });
+});
+app.post("/api/discord/unlink", async (c) => {
+  await c.env.DB.batch([
+    c.env.DB.prepare("DELETE FROM discord_links WHERE user_id=?").bind(
+      c.get("user").id,
+    ),
+    c.env.DB.prepare("DELETE FROM discord_link_codes WHERE user_id=?").bind(
+      c.get("user").id,
+    ),
+  ]);
+  return c.json({ ok: true });
+});
 app.get("/api/session", async (c) =>
   c.json({
     user: await currentUser(c.req.raw, c.env),

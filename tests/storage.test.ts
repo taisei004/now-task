@@ -8,13 +8,28 @@ import {
   mergeRemote,
   readTasks,
   writeTask,
+  emptyCapture,
+  getCaptureOptions,
+  saveCaptureOptions,
 } from "../src/storage";
 beforeEach(async () => {
   const db = await openDB("now-task", 1);
   await db.clear("tasks");
+  await db.clear("meta");
   db.close();
 });
 describe("端末とサーバーの同期", () => {
+  it("未送信メモの追加情報はアカウントごとに保存する", async () => {
+    const options = {
+      due: "2026-10-25",
+      importance: "high" as const,
+      tags: [{ name: "仕事", color: "blue" as const }],
+    };
+    await saveCaptureOptions("user:a", options);
+    expect(await getCaptureOptions("user:a")).toEqual(options);
+    expect(await getCaptureOptions("user:b")).toEqual(emptyCapture());
+    expect(await getCaptureOptions("guest")).toEqual(emptyCapture());
+  });
   it("完全なサーバー応答で削除を反映し、未同期・他ユーザー・ゲストは保持する", async () => {
     const removed = newTask("削除済み"),
       pending = newTask("未同期"),

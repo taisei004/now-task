@@ -1,0 +1,4 @@
+CREATE TABLE focus_sessions (user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE, data TEXT, version INTEGER NOT NULL);
+CREATE TABLE discord_links (discord_user_id TEXT PRIMARY KEY, user_id TEXT NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE, linked_at INTEGER NOT NULL);
+CREATE TABLE discord_link_codes (hash TEXT PRIMARY KEY, user_id TEXT NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE, expires_at INTEGER NOT NULL);
+CREATE TABLE discord_interactions (id TEXT PRIMARY KEY, expires_at INTEGER NOT NULL);

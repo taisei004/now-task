@@ -22,6 +22,7 @@ import {
   ListFilter,
   LoaderCircle,
   LogOut,
+  Mic,
   Pause,
   Play,
   Plus,
@@ -41,7 +42,20 @@ import {
   type Task,
   type Recommendation,
 } from "../shared/tasks";
-import { api, getDraft, readTasks, saveDraft } from "./storage";
+import {
+  api,
+  getDraft,
+  readTasks,
+  saveDraft,
+  getCaptureOptions,
+  saveCaptureOptions,
+  emptyCapture,
+  type CaptureOptions,
+} from "./storage";
+import TagPicker, { TagPill, defaultTags } from "./TagPicker";
+import { useVoiceInput } from "./useVoiceInput";
+import DiscordSettings from "./DiscordSettings";
+import { useSharedFocus } from "./useSharedFocus";
 import { useTasks } from "./useTasks";
 type View = "todo" | "held" | "done";
 type Focus = { taskId: string; remaining: number; endsAt: number | null };
@@ -151,6 +165,13 @@ function TaskRow({
           }}
         >
           <span className="task-text">{task.text}</span>
+          {!!task.tags?.length && (
+            <span className="task-tags">
+              {task.tags.map((tag) => (
+                <TagPill key={tag.name} tag={tag} />
+              ))}
+            </span>
+          )}
           <span className="task-meta">
             {task.due && (
               <span className={task.due <= dateKey() ? "urgent" : ""}>
@@ -209,7 +230,10 @@ export default function App() {
     [view, setView] = useState<View>("todo"),
     [query, setQuery] = useState(""),
     [searchOpen, setSearchOpen] = useState(false),
-    [modal, setModal] = useState<"settings" | "hold" | null>(null),
+    [modal, setModal] = useState<"settings" | "hold" | "voice" | null>(null),
+    [capture, setCapture] = useState<CaptureOptions>(emptyCapture),
+    [captureScope, setCaptureScope] = useState(""),
+    [tagFilter, setTagFilter] = useState(""),
     [editing, setEditing] = useState<Task | null>(null),
     [holding, setHolding] = useState<Task | null>(null),
     [sort, setSort] = useState<"priority" | "newest">("priority"),
@@ -236,12 +260,20 @@ export default function App() {
       setUndo(null);
     }, 6000);
   };
+  const shareFocus = useSharedFocus(scope, setFocus, sync, flash);
   useEffect(() => {
     let active = true;
     const version = ++draftVersion.current;
     void getDraft(scope).then((d) => {
       if (active && version === draftVersion.current) setText(d);
     });
+    void getCaptureOptions(scope).then((value) => {
+      if (active) {
+        setCapture(value);
+        setCaptureScope(scope);
+      }
+    });
+    setTagFilter("");
     try {
       const saved = localStorage.getItem(`now-focus:${scope}`);
       setFocus(saved ? JSON.parse(saved) : null);
@@ -253,6 +285,12 @@ export default function App() {
       active = false;
     };
   }, [scope]);
+  useEffect(() => {
+    if (captureScope === scope)
+      void saveCaptureOptions(scope, capture).catch(() =>
+        flash("入力設定を保存できませんでした。"),
+      );
+  }, [capture, captureScope, scope]);
   useEffect(() => {
     const interval = setInterval(() => setTick(Date.now()), 500);
     return () => clearInterval(interval);
@@ -362,8 +400,13 @@ export default function App() {
     setBusy(true);
     const value = text.trim();
     try {
-      await mutate(newTask(value));
+      const task = newTask(value);
+      if (capture.due) task.due = capture.due;
+      if (capture.importance !== "auto") task.importance = capture.importance;
+      task.tags = capture.tags;
+      await mutate(task);
       onText("");
+      setCapture(emptyCapture());
       input.current?.focus();
       flash("追加しました");
     } catch {
@@ -371,6 +414,30 @@ export default function App() {
     } finally {
       setBusy(false);
     }
+  };
+  const voice = useVoiceInput(
+    (value) =>
+      onText(
+        (text + (text && !text.endsWith("\n") ? "\n" : "") + value).slice(
+          0,
+          2000,
+        ),
+      ),
+    flash,
+    scope,
+  );
+  const allTags = [
+    ...new Map(
+      [...defaultTags, ...tasks.flatMap((t) => t.tags ?? [])].map((tag) => [
+        tag.name,
+        tag,
+      ]),
+    ).values(),
+  ];
+  const toggleVoice = () => {
+    if (localStorage.getItem("now-voice-consent") === "yes" || !voice.supported)
+      voice.toggle();
+    else setModal("voice");
   };
   const changeStatus = async (
     task: Task,
@@ -422,7 +489,7 @@ export default function App() {
     .padStart(2, "0")}:${(remaining % 60).toString().padStart(2, "0")}`;
   const startFocus = () => {
     if (chosen)
-      setFocus({
+      shareFocus({
         taskId: chosen.id,
         remaining: 600,
         endsAt: Date.now() + 600000,
@@ -430,7 +497,7 @@ export default function App() {
   };
   const pauseFocus = () => {
     if (focus)
-      setFocus({
+      shareFocus({
         ...focus,
         remaining,
         endsAt: focus.endsAt
@@ -449,8 +516,10 @@ export default function App() {
       : tasks
           .filter((t) => t.status === view)
           .sort((a, b) => b.updatedAt - a.updatedAt)
-  ).filter((t) =>
-    t.text.toLocaleLowerCase().includes(query.toLocaleLowerCase()),
+  ).filter(
+    (t) =>
+      t.text.toLocaleLowerCase().includes(query.toLocaleLowerCase()) &&
+      (!tagFilter || t.tags?.some((tag) => tag.name === tagFilter)),
   );
   const completedToday = tasks.filter(
     (t) => t.status === "done" && dateKey(new Date(t.updatedAt)) === today,
@@ -537,24 +606,96 @@ export default function App() {
                 }
               }}
             />
+            <div className="capture-options">
+              <label>
+                期日
+                <input
+                  aria-label="メモの期日"
+                  type="date"
+                  value={capture.due}
+                  onChange={(e) =>
+                    setCapture({ ...capture, due: e.target.value })
+                  }
+                />
+              </label>
+              <label>
+                重要度
+                <select
+                  aria-label="メモの重要度"
+                  value={capture.importance}
+                  onChange={(e) =>
+                    setCapture({
+                      ...capture,
+                      importance: e.target
+                        .value as CaptureOptions["importance"],
+                    })
+                  }
+                >
+                  <option value="auto">自動</option>
+                  <option value="normal">通常</option>
+                  <option value="high">重要</option>
+                </select>
+              </label>
+              <TagPicker
+                value={capture.tags}
+                options={allTags}
+                onChange={(tags) => setCapture({ ...capture, tags })}
+              />
+            </div>
+            {!!capture.tags.length && (
+              <div className="selected-tags">
+                {capture.tags.map((tag) => (
+                  <button
+                    type="button"
+                    key={tag.name}
+                    aria-label={`${tag.name}タグを外す`}
+                    onClick={() =>
+                      setCapture({
+                        ...capture,
+                        tags: capture.tags.filter((t) => t.name !== tag.name),
+                      })
+                    }
+                  >
+                    <TagPill tag={tag} />
+                    <X size={12} />
+                  </button>
+                ))}
+              </div>
+            )}
+            {(voice.listening || voice.interim) && (
+              <p className="voice-status" role="status">
+                {voice.interim || "聞き取り中…"}
+              </p>
+            )}
             <div className="capture-bottom">
               <span>
                 {text.length
                   ? `${text.length} / 2000`
                   : "「明日」「重要」もそのまま入力"}
               </span>
-              <button
-                className="add-button"
-                type="submit"
-                disabled={!text.trim() || busy}
-                aria-label="タスクを追加"
-              >
-                {busy ? (
-                  <LoaderCircle size={18} className="spin" />
-                ) : (
-                  <ArrowUp size={19} />
-                )}
-              </button>
+              <div className="capture-actions">
+                <button
+                  className={`icon-button mic-button ${voice.listening ? "listening" : ""}`}
+                  type="button"
+                  aria-label={voice.listening ? "音声入力を停止" : "音声入力"}
+                  aria-pressed={voice.listening}
+                  onClick={toggleVoice}
+                >
+                  <Mic size={19} />
+                </button>
+                <button
+                  className="add-button"
+                  type="submit"
+                  disabled={!text.trim() || busy}
+                  aria-label="タスクを追加"
+                >
+                  {busy ? (
+                    <LoaderCircle size={18} className="spin" />
+                  ) : (
+                    <ArrowUp size={19} />
+                  )}
+                </button>
+              </div>
             </div>
           </form>
         </section>
@@ -680,7 +821,7 @@ export default function App() {
                             </button>
                             <button
                               className="text-button"
-                              onClick={() => setFocus(null)}
+                              onClick={() => shareFocus(null)}
                             >
                               区切る
                             </button>
@@ -789,6 +930,31 @@ export default function App() {
                   <ListFilter size={18} />
                 </button>
               </div>
+            </div>
+            <div className="tag-filters" aria-label="タグで絞り込み">
+              <button
+                aria-pressed={!tagFilter}
+                onClick={() => setTagFilter("")}
+              >
+                すべて
+              </button>
+              {allTags
+                .filter((tag) =>
+                  tasks.some((task) =>
+                    task.tags?.some((t) => t.name === tag.name),
+                  ),
+                )
+                .map((tag) => (
+                  <button
+                    key={tag.name}
+                    aria-pressed={tagFilter === tag.name}
+                    onClick={() =>
+                      setTagFilter(tagFilter === tag.name ? "" : tag.name)
+                    }
+                  >
+                    <TagPill tag={tag} />
+                  </button>
+                ))}
             </div>
             <div className="tabs glass" role="tablist" aria-label="ステータス">
               {(["todo", "held", "done"] as View[]).map((v) => (
@@ -930,6 +1096,24 @@ export default function App() {
           </motion.div>
         )}
       </AnimatePresence>
+      {modal === "voice" && (
+        <Modal title="音声入力" onClose={() => setModal(null)}>
+          <p className="settings-note">
+            マイクで話した内容をメモ欄に入力します。音声はブラウザの音声認識サービスに送信される場合があります。内容を確認してから追加できます。
+          </p>
+          <button
+            className="primary-button"
+            onClick={() => {
+              localStorage.setItem("now-voice-consent", "yes");
+              setModal(null);
+              voice.toggle();
+            }}
+          >
+            音声入力を始める
+            <Mic size={17} />
+          </button>
+        </Modal>
+      )}
       {modal === "settings" && (
         <Modal title="設定" onClose={() => setModal(null)}>
           <div className="account-card">
@@ -951,6 +1135,7 @@ export default function App() {
                 <span>優先順位の提案</span>
                 <strong>Workers AI</strong>
               </div>
+              <DiscordSettings />
               {guestCount > 0 && (
                 <button
                   className="wide-secondary"
@@ -1097,6 +1282,19 @@ export default function App() {
                   <option value="high">重要</option>
                 </select>
               </label>
+            </div>
+            <div className="edit-tags">
+              <span>タグ</span>
+              <TagPicker
+                value={editing.tags ?? []}
+                options={allTags}
+                onChange={(tags) => setEditing({ ...editing, tags })}
+              />
+              <div className="selected-tags">
+                {editing.tags?.map((tag) => (
+                  <TagPill key={tag.name} tag={tag} />
+                ))}
+              </div>
             </div>
             <label>
               ステータス

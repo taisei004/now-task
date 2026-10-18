@@ -7,6 +7,10 @@ export interface Env {
   GOOGLE_CLIENT_SECRET?: string;
   APP_ORIGIN?: string;
   AI_MODEL?: string;
+  DISCORD_PUBLIC_KEY?: string;
+  DISCORD_APPLICATION_ID?: string;
+  DISCORD_GUILD_ID?: string;
+  DISCORD_CHANNEL_ID?: string;
 }
 export type User = { id: string; email: string; name: string };
 export const keys = createRemoteJWKSet(

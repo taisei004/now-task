@@ -1,5 +1,23 @@
 import { openDB } from "idb";
-import type { Task } from "../shared/tasks";
+import type { Task, Tag } from "../shared/tasks";
+export type CaptureOptions = {
+  due: string;
+  importance: "auto" | "normal" | "high";
+  tags: Tag[];
+};
+export const emptyCapture = (): CaptureOptions => ({
+  due: "",
+  importance: "auto",
+  tags: [],
+});
+export async function getCaptureOptions(
+  scope: string,
+): Promise<CaptureOptions> {
+  return (await (await db).get("meta", `capture:${scope}`)) ?? emptyCapture();
+}
+export async function saveCaptureOptions(scope: string, value: CaptureOptions) {
+  await (await db).put("meta", value, `capture:${scope}`);
+}
 const db = openDB("now-task", 1, {
   upgrade(db) {
     db.createObjectStore("tasks", { keyPath: "key" });

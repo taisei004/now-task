@@ -1,3 +1,12 @@
+export const TAG_COLORS = [
+  "blue",
+  "green",
+  "purple",
+  "amber",
+  "rose",
+  "slate",
+] as const;
+export type Tag = { name: string; color: (typeof TAG_COLORS)[number] };
 export type Task = {
   id: string;
   text: string;
@@ -8,6 +17,7 @@ export type Task = {
   importance: "normal" | "high";
   minutes: number;
   holdReason: string | null;
+  tags?: Tag[];
 };
 export type Recommendation = {
   taskId: string;
@@ -19,9 +29,13 @@ export type Recommendation = {
 export function dateKey(date = new Date()) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
-export function newTask(text: string, now = Date.now()): Task {
+export function newTask(
+  text: string,
+  now = Date.now(),
+  today = dateKey(new Date(now)),
+): Task {
   let due: string | null = null;
-  const d = new Date(now);
+  const d = new Date(`${today}T12:00:00`);
   if (/明後日/.test(text)) d.setDate(d.getDate() + 2);
   else if (/明日/.test(text)) d.setDate(d.getDate() + 1);
   if (/今日|明日|明後日/.test(text)) due = dateKey(d);

@@ -1,5 +1,13 @@
 import { z } from "zod";
 import { dateKey, type Task } from "../shared/tasks";
+export const TagsSchema = z
+  .array(
+    z.object({
+      name: z.string().trim().min(1).max(24),
+      color: z.enum(["blue", "green", "purple", "amber", "rose", "slate"]),
+    }),
+  )
+  .max(5);
 export const TaskSchema: z.ZodType<Task> = z.object({
   id: z.uuid(),
   text: z.string().trim().min(1).max(2000),
@@ -17,4 +25,5 @@ export const TaskSchema: z.ZodType<Task> = z.object({
   importance: z.enum(["normal", "high"]),
   minutes: z.number().int().min(1).max(1440),
   holdReason: z.string().max(100).nullable(),
+  tags: TagsSchema.optional(),
 });
