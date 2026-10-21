@@ -32,11 +32,14 @@ export class NotionClient {
         },
         body: body === undefined ? undefined : JSON.stringify(body),
         signal: AbortSignal.timeout(12000),
-        redirect: "error",
+        // Workers supports manual/follow only. Never forward the token on redirects.
+        redirect: "manual",
       });
     } catch {
       throw Error("Notionに接続できません。後でもう一度同期してください。");
     }
+    if (response.status >= 300 && response.status < 400)
+      throw Error("Notionの接続先が変更されました。管理者に確認してください。");
     if (!response.ok) {
       if (response.status === 401)
         throw Error("Notionの接続キーが無効です。接続設定を更新してください。");

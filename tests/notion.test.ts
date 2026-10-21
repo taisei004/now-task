@@ -506,9 +506,20 @@ describe("Notion HTTPクライアント", () => {
     );
     expect(mock.mock.calls[0][0]).toBe("https://api.notion.com/v1/pages/test");
     expect(mock.mock.calls[0][1].headers["Notion-Version"]).toBe("2026-03-11");
+    expect(mock.mock.calls[0][1].redirect).toBe("manual");
     await expect(
       new NotionClient(token).call("https://evil.test"),
     ).rejects.toThrow("操作先");
     expect(mock).toHaveBeenCalledTimes(1);
+  });
+  it("リダイレクト先に接続キーを転送せず停止する", async () => {
+    spy.mockRestore();
+    const mock = vi.fn().mockResolvedValue(new Response(null, {
+      status: 302, headers: { Location: "https://other.example/" },
+    }));
+    vi.stubGlobal("fetch", mock);
+    await expect(new NotionClient(token).call("/pages/test")).rejects.toThrow("接続先が変更");
+    expect(mock).toHaveBeenCalledTimes(1);
+    expect(mock.mock.calls[0][1].redirect).toBe("manual");
   });
 });
