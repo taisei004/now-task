@@ -25,5 +25,5 @@
     "DISCORD_CHANNEL_ID": "1480597044425916469",
   },
   "observability": { "enabled": true },
-  "triggers": { "crons": ["*/2 * * * *"] },
+  "triggers": { "crons": ["*/2 * * * *", "0 0,4,9 * * *"] },
 }

@@ -56,6 +56,7 @@ import TagPicker, { TagPill, defaultTags } from "./TagPicker";
 import { useVoiceInput } from "./useVoiceInput";
 import DiscordSettings from "./DiscordSettings";
 import NotionSettings from "./NotionSettings";
+import DiscordReminders from "./DiscordReminders";
 import { useSharedFocus } from "./useSharedFocus";
 import { useTasks } from "./useTasks";
 type View = "todo" | "held" | "done";
@@ -1155,6 +1156,7 @@ export default function App() {
                 <strong>Workers AI</strong>
               </div>
               <DiscordSettings />
+              <DiscordReminders />
               <NotionSettings syncTasks={sync} />
               {guestCount > 0 && (
                 <button

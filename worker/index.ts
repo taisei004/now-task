@@ -1,5 +1,6 @@
 import { TaskSchema } from "./schema";
 import discord from "./discord";
+import discordReminders, { sendScheduledReminders } from "./discord-reminders";
 import notion from "./notion-routes";
 import { syncNotionScheduled } from "./notion-sync";
 import { discordCommand } from "../shared/discord-command";
@@ -66,6 +67,7 @@ app.use("/api/*", async (c, next) => {
 });
 app.get("/api/health", (c) => c.json({ ok: true }));
 app.route("/api/notion", notion);
+app.route("/api/discord-reminders", discordReminders);
 app.route("/discord", discord);
 app.get("/api/focus", async (c) =>
   c.json(await readFocus(c.env, c.get("user").id)),
@@ -463,7 +465,9 @@ app.onError((err, c) => {
 });
 app.notFound((c) => c.json({ error: "見つかりません。" }, 404));
 export default Object.assign(app, {
-  scheduled: (_event: ScheduledEvent, env: Env, ctx: ExecutionContext) => {
-    ctx.waitUntil(syncNotionScheduled(env));
+  scheduled: (event: ScheduledEvent, env: Env, ctx: ExecutionContext) => {
+    if (event.cron === "0 0,4,9 * * *")
+      ctx.waitUntil(sendScheduledReminders(env, event.scheduledTime));
+    else ctx.waitUntil(syncNotionScheduled(env));
   },
 });
