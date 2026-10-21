@@ -1,6 +1,7 @@
 import { openDB } from "idb";
 import type { Task, Tag } from "../shared/tasks";
 export type CaptureOptions = {
+  source?: Task["source"];
   due: string;
   importance: "auto" | "normal" | "high";
   tags: Tag[];

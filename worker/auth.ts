@@ -11,6 +11,7 @@ export interface Env {
   DISCORD_APPLICATION_ID?: string;
   DISCORD_GUILD_ID?: string;
   DISCORD_CHANNEL_ID?: string;
+  NOTION_ENCRYPTION_KEY?: string;
 }
 export type User = { id: string; email: string; name: string };
 export const keys = createRemoteJWKSet(

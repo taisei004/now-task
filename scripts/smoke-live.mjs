@@ -68,6 +68,13 @@ try {
   const session = await (await call("/api/session")).json();
   assert.equal(session.user.id, alice);
   check("real D1 session resolved");
+  const notion = await (await call("/api/notion")).json();
+  assert.equal(notion.available, true);
+  assert.equal(notion.connected, false);
+  assert.deepEqual(notion.conflicts, []);
+  assert.equal(notion.token_cipher, undefined);
+  assert.equal(notion.token, undefined);
+  check("Notion setup available and private credentials absent");
   const today = new Date().toISOString().slice(0, 10),
     urgentId = randomUUID(),
     laterId = randomUUID();

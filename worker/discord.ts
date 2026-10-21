@@ -276,6 +276,7 @@ discord.post("/interactions", async (c) => {
       timeZone: "Asia/Tokyo",
     }).format(new Date());
     const task = newTask(values.text, Date.now(), today);
+    task.source = "discord";
     if (values.due) {
       if (
         !/^\d{4}-\d{2}-\d{2}$/.test(values.due) ||

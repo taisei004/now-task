@@ -317,3 +317,88 @@
     padding: 10px 8px;
   }
 }
+.notion-settings {
+  border-top: 1px solid #e2e7f1;
+  margin-top: 18px;
+  padding-top: 18px;
+}
+.notion-settings p {
+  font-size: 12px;
+  line-height: 1.8;
+  color: #667085;
+  overflow-wrap: anywhere;
+}
+.notion-settings details {
+  font-size: 12px;
+  color: #56627a;
+  margin: 12px 0;
+}
+.notion-settings summary {
+  cursor: pointer;
+  margin-bottom: 10px;
+}
+.notion-settings label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  margin: 12px 0;
+  color: #667085;
+}
+.notion-settings input,
+.notion-settings textarea {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid #dbe2ef;
+  background: #ffffffb3;
+  padding: 9px;
+  border-radius: 10px;
+  font: inherit;
+  resize: vertical;
+}
+.notion-links {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  margin: 10px 0 14px;
+}
+.notion-settings a {
+  color: #536bd1;
+  text-decoration: none;
+}
+.notion-conflict {
+  padding: 10px;
+  border: 1px solid #efd9bf;
+  border-radius: 10px;
+  margin: 10px 0;
+}
+.notion-conflict > div {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+.notion-conflict button {
+  font: inherit;
+  font-size: 11px;
+  border: 1px solid #dbe2ef;
+  border-radius: 7px;
+  padding: 7px;
+  background: #fff;
+  color: #56627a;
+}
+.edit-form .review-checkbox {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+.edit-form .review-checkbox input {
+  width: 16px;
+  min-height: 16px;
+  height: 16px;
+  padding: 0;
+}

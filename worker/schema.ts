@@ -26,4 +26,16 @@ export const TaskSchema: z.ZodType<Task> = z.object({
   minutes: z.number().int().min(1).max(1440),
   holdReason: z.string().max(100).nullable(),
   tags: TagsSchema.optional(),
+  source: z.enum(["now", "voice", "chat", "discord", "notion"]).optional(),
+  needsReview: z.boolean().optional(),
+  notionUrl: z
+    .string()
+    .url()
+    .refine(
+      (v) =>
+        /^https:\/\/(?:www\.)?notion\.so\//.test(v) ||
+        /^https:\/\/app\.notion\.com\//.test(v),
+    )
+    .optional(),
+  project: z.string().max(300).optional(),
 });

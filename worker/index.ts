@@ -1,5 +1,7 @@
 import { TaskSchema } from "./schema";
 import discord from "./discord";
+import notion from "./notion-routes";
+import { syncNotionScheduled } from "./notion-sync";
 import { discordCommand } from "../shared/discord-command";
 import { FocusSchema, readFocus, writeFocus } from "./focus";
 import { Hono } from "hono";
@@ -63,6 +65,7 @@ app.use("/api/*", async (c, next) => {
   await next();
 });
 app.get("/api/health", (c) => c.json({ ok: true }));
+app.route("/api/notion", notion);
 app.route("/discord", discord);
 app.get("/api/focus", async (c) =>
   c.json(await readFocus(c.env, c.get("user").id)),
@@ -86,7 +89,11 @@ app.post("/api/focus", async (c) => {
     )
       .bind(userId, focus.taskId)
       .first<{ data: string }>();
-    if (!row || JSON.parse(row.data).status !== "todo")
+    if (
+      !row ||
+      JSON.parse(row.data).status !== "todo" ||
+      JSON.parse(row.data).needsReview
+    )
       return c.json({ error: "同期済みの未完了タスクを選んでください。" }, 400);
   }
   const saved = await writeFocus(c.env, userId, focus, version);
@@ -455,4 +462,8 @@ app.onError((err, c) => {
   );
 });
 app.notFound((c) => c.json({ error: "見つかりません。" }, 404));
-export default app;
+export default Object.assign(app, {
+  scheduled: (_event: ScheduledEvent, env: Env, ctx: ExecutionContext) => {
+    ctx.waitUntil(syncNotionScheduled(env));
+  },
+});

@@ -6,6 +6,8 @@
 
 ソース：[taisei004/now-task](https://github.com/taisei004/now-task)
 
+Notionで案件・タスクの全体を管理し、Nowで着手するための双方向同期を追加しました。設定方法・データ項目・同時編集の扱いは [Notion連携](docs/NOTION.md) を参照してください。接続キーを設定するまで、既存タスクをNotionへ送信しません。
+
 ## 操作
 
 - 開くと入力欄にフォーカス。改行を含むラフな文章を登録できます。Ctrl / ⌘ + Enterでも追加。

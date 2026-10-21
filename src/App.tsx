@@ -55,6 +55,7 @@ import {
 import TagPicker, { TagPill, defaultTags } from "./TagPicker";
 import { useVoiceInput } from "./useVoiceInput";
 import DiscordSettings from "./DiscordSettings";
+import NotionSettings from "./NotionSettings";
 import { useSharedFocus } from "./useSharedFocus";
 import { useTasks } from "./useTasks";
 type View = "todo" | "held" | "done";
@@ -173,6 +174,8 @@ function TaskRow({
             </span>
           )}
           <span className="task-meta">
+            {task.project && <span>{task.project}</span>}
+            {task.needsReview && <span className="urgent">要確認</span>}
             {task.due && (
               <span className={task.due <= dateKey() ? "urgent" : ""}>
                 {dueLabel(task.due)}
@@ -262,6 +265,10 @@ export default function App() {
   };
   const shareFocus = useSharedFocus(scope, setFocus, sync, flash);
   useEffect(() => {
+    if (new URLSearchParams(location.hash.slice(1)).has("notion"))
+      setModal("settings");
+  }, []);
+  useEffect(() => {
     let active = true;
     const version = ++draftVersion.current;
     void getDraft(scope).then((d) => {
@@ -310,7 +317,9 @@ export default function App() {
   useEffect(() => {
     if (
       focus &&
-      !tasks.some((t) => t.id === focus.taskId && t.status === "todo") &&
+      !tasks.some(
+        (t) => t.id === focus.taskId && t.status === "todo" && !t.needsReview,
+      ) &&
       !loading
     )
       setFocus(null);
@@ -404,6 +413,7 @@ export default function App() {
       if (capture.due) task.due = capture.due;
       if (capture.importance !== "auto") task.importance = capture.importance;
       task.tags = capture.tags;
+      task.source = capture.source ?? "now";
       await mutate(task);
       onText("");
       setCapture(emptyCapture());
@@ -416,13 +426,15 @@ export default function App() {
     }
   };
   const voice = useVoiceInput(
-    (value) =>
+    (value) => {
+      setCapture((previous) => ({ ...previous, source: "voice" }));
       onText(
         (text + (text && !text.endsWith("\n") ? "\n" : "") + value).slice(
           0,
           2000,
         ),
-      ),
+      );
+    },
     flash,
     scope,
   );
@@ -470,8 +482,15 @@ export default function App() {
     }
   };
   const chosen =
-    tasks.find((t) => t.id === focus?.taskId && t.status === "todo") ??
-    tasks.find((t) => t.id === recommendation?.taskId && t.status === "todo") ??
+    tasks.find(
+      (t) => t.id === focus?.taskId && t.status === "todo" && !t.needsReview,
+    ) ??
+    tasks.find(
+      (t) =>
+        t.id === recommendation?.taskId &&
+        t.status === "todo" &&
+        !t.needsReview,
+    ) ??
     rankTasks(tasks, today)[0];
   const chosenRecommendation =
     chosen && recommendation?.taskId === chosen.id
@@ -1136,6 +1155,7 @@ export default function App() {
                 <strong>Workers AI</strong>
               </div>
               <DiscordSettings />
+              <NotionSettings syncTasks={sync} />
               {guestCount > 0 && (
                 <button
                   className="wide-secondary"
@@ -1296,6 +1316,24 @@ export default function App() {
                 ))}
               </div>
             </div>
+            {editing.project && (
+              <p className="settings-note">案件：{editing.project}</p>
+            )}
+            {editing.notionUrl && (
+              <a href={editing.notionUrl} target="_blank" rel="noreferrer">
+                Notionで詳細を開く
+              </a>
+            )}
+            <label className="review-checkbox">
+              <input
+                type="checkbox"
+                checked={!editing.needsReview}
+                onChange={(e) =>
+                  setEditing({ ...editing, needsReview: !e.target.checked })
+                }
+              />
+              内容を確認済み
+            </label>
             <label>
               ステータス
               <select

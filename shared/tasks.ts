@@ -18,6 +18,10 @@ export type Task = {
   minutes: number;
   holdReason: string | null;
   tags?: Tag[];
+  source?: "now" | "voice" | "chat" | "discord" | "notion";
+  needsReview?: boolean;
+  notionUrl?: string;
+  project?: string;
 };
 export type Recommendation = {
   taskId: string;
@@ -73,7 +77,7 @@ export function rankTasks(tasks: Task[], today = dateKey()): Task[] {
             )
       : 0) + (t.importance === "high" ? 1500 : 0);
   return tasks
-    .filter((t) => t.status === "todo")
+    .filter((t) => t.status === "todo" && !t.needsReview)
     .sort(
       (a, b) =>
         score(b) - score(a) ||

@@ -22,7 +22,11 @@ export async function readFocus(env: Env, userId: string): Promise<FocusState> {
     )
       .bind(userId, focus.taskId)
       .first<{ data: string }>();
-    if (!task || JSON.parse(task.data).status !== "todo")
+    if (
+      !task ||
+      JSON.parse(task.data).status !== "todo" ||
+      JSON.parse(task.data).needsReview
+    )
       return { focus: null, version: row.version };
     if (focus.endsAt && focus.endsAt <= Date.now())
       return {
